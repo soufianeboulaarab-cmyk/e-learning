@@ -65,5 +65,5 @@ app.post('/examens', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ exam-service démarré sur http://localhost:${PORT}`);
+  console.log(`exam-service démarré sur http://localhost:${PORT}`);
 });

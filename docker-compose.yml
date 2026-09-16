@@ -1,8 +1,5 @@
-# 1. Version de la syntaxe Docker Compose utilisée.
-#    "3.9" est une version stable et largement compatible.
 version: "3.9"
 
-# 2. La section "services" liste tous les conteneurs qu'on veut faire tourner.
 services:
 
   # --- Service 1 : microservice Node.js ---

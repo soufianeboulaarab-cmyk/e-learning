@@ -1,0 +1,50 @@
+# 1. Version de la syntaxe Docker Compose utilisée.
+#    "3.9" est une version stable et largement compatible.
+version: "3.9"
+
+# 2. La section "services" liste tous les conteneurs qu'on veut faire tourner.
+services:
+
+  # --- Service 1 : microservice Node.js ---
+  exam-service:
+    build:
+      context: ./exam-service
+      dockerfile: Dockerfile
+
+    container_name: exam-service-container
+
+    ports:
+      - "3001:3001"
+
+    environment:
+      - PORT=3001
+      - MONGO_URI=mongodb://mongo-db:27017/examdb
+
+    depends_on:
+      - mongo-db
+
+    networks:
+      - pfa-network
+
+  # --- Service 2 : base de données MongoDB ---
+  mongo-db:
+
+    image: mongo:6
+
+    container_name: mongo-db-container
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongo-data:/data/db
+
+    networks:
+      - pfa-network
+
+volumes:
+  mongo-data:
+
+networks:
+  pfa-network:
+    driver: bridge

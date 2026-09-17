@@ -41,4 +41,25 @@ jobs:
         run: docker build -t exam-service:ci .
 
       - name: Confirmation
-        run: echo "✅ Le build et les vérifications de exam-service ont réussi !"
+        run: echo "Le build et les vérifications de exam-service ont réussi !"
+
+
+      - name: Connexion à Docker Hub
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+ 
+      - name: Construire et publier l'image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/exam-service
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$SHORT_SHA .
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:$SHORT_SHA
+ 
+      - name: Confirmation du CD
+        if: github.ref == 'refs/heads/main'
+        run: echo "🚀 Image publiée avec succès sur Docker Hub !"

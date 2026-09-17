@@ -46,7 +46,7 @@ app.get('/examens/:id', async (req, res) => {
     }
     res.status(200).json(examen);
   } catch (err) {
-    // Si l'id fourni n'a pas un format MongoDB valide, Mongoose lève une erreur.
+    // Si l'id fourni n'a pas un format MongoDB valide, Mongoose lève une erreur
     res.status(400).json({ message: 'ID invalide', error: err.message });
   }
 });

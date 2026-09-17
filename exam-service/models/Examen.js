@@ -8,7 +8,7 @@ const examenSchema = new mongoose.Schema({
   scoreMinimum: {
     type: Number,
     required: true,
-    default: 90           // valeur par défaut (cohérent avec ta règle de réussite à 90%)
+    default: 90         
   }
 }, {
   // "timestamps: true" ajoute automatiquement deux champs :

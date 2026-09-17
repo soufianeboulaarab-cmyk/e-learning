@@ -1,7 +1,6 @@
 name: CI - Exam Service
 
 on:
-
   push:
     branches: [ main ]
     paths:
@@ -62,4 +61,4 @@ jobs:
  
       - name: Confirmation du CD
         if: github.ref == 'refs/heads/main'
-        run: echo "🚀 Image publiée avec succès sur Docker Hub !"
+        run: echo "Image publiée avec succès sur Docker Hub !"

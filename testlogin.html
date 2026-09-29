@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Google Sign-In</title>
+  <!-- 1. On charge la bibliothèque officielle Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <h1>Test de connexion - PFA E-learning UCA</h1>
+
+  <!-- 2. Div où Google va afficher son bouton officiel -->
+  <div id="g_id_onload"
+       data-client_id="772705364192-9upe6omq4huvtlqqj08n8ag6fojcvnjg.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse">
+  </div>
+  <div class="g_id_signin" data-type="standard"></div>
+
+  <pre id="resultat" style="background:#eee; padding:10px; margin-top:20px;"></pre>
+
+  <script>
+    // 3. Cette fonction est appelée automatiquement par Google après connexion réussie.
+    //    "response.credential" est l'ID Token qu'on doit envoyer à NOTRE backend.
+    async function handleCredentialResponse(response) {
+      document.getElementById('resultat').textContent = 'Envoi au backend en cours...';
+
+      try {
+        // 4. On envoie ce token à notre route /auth/google
+        const res = await fetch('http://localhost:3002/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: response.credential })
+        });
+
+        const data = await res.json();
+
+        // 5. On affiche le résultat (notre propre JWT + infos utilisateur, ou une erreur).
+        document.getElementById('resultat').textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById('resultat').textContent = 'Erreur : ' + err.message;
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>

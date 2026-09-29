@@ -2,45 +2,168 @@ version: "3.9"
 
 services:
 
-  # --- Service 1 : microservice Node.js ---
+  # --- Service 1 : microservice Gestion des Examens ---
   exam-service:
     build:
       context: ./exam-service
       dockerfile: Dockerfile
-
     container_name: exam-service-container
-
-    ports:
-      - "3001:3001"
-
+    expose:
+      - "3001"
     environment:
       - PORT=3001
       - MONGO_URI=mongodb://mongo-db:27017/examdb
-
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - mongo-db
-
     networks:
       - pfa-network
 
-  # --- Service 2 : base de données MongoDB ---
+  # --- Service 2 : base MongoDB DÉDIÉE à exam-service ---
   mongo-db:
-
     image: mongo:6
-
     container_name: mongo-db-container
-
     ports:
       - "27017:27017"
-
     volumes:
       - mongo-data:/data/db
+    networks:
+      - pfa-network
 
+  # --- Service 3 : microservice Gestion des Utilisateurs (Google Sign-In) ---
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service-container
+    expose:
+      - "3002"
+    environment:
+      - PORT=3002
+      - MONGO_URI=mongodb://mongo-db-users:27017/userdb
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - mongo-db-users
+    networks:
+      - pfa-network
+
+  # --- Service 4 : base MongoDB DÉDIÉE à user-service ---
+  #     Rappel "Database per Service" : totalement séparée de mongo-db (exam-service).
+  mongo-db-users:
+    image: mongo:6
+    container_name: mongo-db-users-container
+    ports:
+      # 27018 côté machine hôte pour ne PAS entrer en conflit avec mongo-db (27017)
+      - "27018:27017"
+    volumes:
+      - mongo-users-data:/data/db
+    networks:
+      - pfa-network
+
+  # --- Service 5 : microservice Gestion des Cours (modules/cours/leçons) ---
+  course-service:
+    build:
+      context: ./course-service
+      dockerfile: Dockerfile
+    container_name: course-service-container
+    expose:
+      - "3003"
+    environment:
+      - PORT=3003
+      - MONGO_URI=mongodb://mongo-db-courses:27017/coursedb
+      # Même secret que user-service : c'est ce qui permet la vérification
+      # décentralisée des tokens JWT, sans appel réseau à user-service.
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - mongo-db-courses
+    networks:
+      - pfa-network
+
+  # --- Service 6 : base MongoDB DÉDIÉE à course-service ---
+  mongo-db-courses:
+    image: mongo:6
+    container_name: mongo-db-courses-container
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo-courses-data:/data/db
+    networks:
+      - pfa-network
+
+  # --- Service 7 : microservice Gestion des Quiz ---
+  quiz-service:
+    build:
+      context: ./quiz-service
+      dockerfile: Dockerfile
+    container_name: quiz-service-container
+    expose:
+      - "3004"
+    environment:
+      - PORT=3004
+      - MONGO_URI=mongodb://mongo-db-quiz:27017/quizdb
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - mongo-db-quiz
+    networks:
+      - pfa-network
+
+  # --- Service 8 : base MongoDB DÉDIÉE à quiz-service ---
+  mongo-db-quiz:
+    image: mongo:6
+    container_name: mongo-db-quiz-container
+    ports:
+      - "27020:27017"
+    volumes:
+      - mongo-quiz-data:/data/db
+    networks:
+      - pfa-network
+
+  # --- Service 9 : microservice de Progression + Certificats (agrégateur, sans base) ---
+  progress-service:
+    build:
+      context: ./progress-service
+      dockerfile: Dockerfile
+    container_name: progress-service-container
+    expose:
+      - "3005"
+    environment:
+      - PORT=3005
+      - JWT_SECRET=${JWT_SECRET}
+      - EXAM_SERVICE_URL=http://exam-service:3001
+      - COURSE_SERVICE_URL=http://course-service:3003
+      - USER_SERVICE_URL=http://user-service:3002
+    depends_on:
+      - exam-service
+      - course-service
+      - user-service
+    networks:
+      - pfa-network
+
+  # --- Service 10 : API Gateway (Nginx) — SEUL point d'entrée exposé ---
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - exam-service
+      - user-service
+      - course-service
+      - quiz-service
+      - progress-service
     networks:
       - pfa-network
 
 volumes:
   mongo-data:
+  mongo-users-data:
+  mongo-courses-data:
+  mongo-quiz-data:
 
 networks:
   pfa-network:

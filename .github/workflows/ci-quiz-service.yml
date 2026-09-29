@@ -1,0 +1,58 @@
+﻿name: CI/CD - quiz-service
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'quiz-service/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'quiz-service/**'
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: quiz-service
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: quiz-service/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier la syntaxe du code
+        run: node -c server.js
+
+      - name: Construire l'image Docker
+        run: docker build -t quiz-service:ci .
+
+      - name: Connexion à Docker Hub
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Construire et publier l'image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/quiz-service
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$SHORT_SHA .
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:$SHORT_SHA
+
+      - name: Confirmation
+        if: github.ref == 'refs/heads/main'
+        run: echo "Image quiz-service publiée avec succès sur Docker Hub"
